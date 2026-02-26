@@ -1,6 +1,4 @@
-// api/generate.js - Vercel Serverless Function (SDK Version)
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
+// api/generate.js - Vercel Serverless Function (REST v1 Version)
 export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
@@ -13,39 +11,43 @@ export default async function handler(req, res) {
     }
 
     const { prompt } = req.body;
-
     if (!prompt) {
         return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
     }
 
+    const maskedKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+
+    // 가장 표준적인 v1 엔드포인트를 사용합니다. (SDK의 v1beta 오류를 피하기 위함)
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
     try {
-        const maskedKey = apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "없음";
-        const keyLength = apiKey ? apiKey.length : 0;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
 
-        console.log(`Diagnostic: Key Length=${keyLength}, Masked=${maskedKey}`);
+        const data = await response.json();
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-
-        // 가장 호환성이 높은 모델 하나를 우선 타겟팅하여 진단합니다.
-        const modelName = "gemini-1.5-flash";
-        const model = genAI.getGenerativeModel({ model: modelName });
-
-        try {
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-            return res.status(200).json({ result: text, model: modelName });
-        } catch (sdkError) {
-            // 구글 서버의 날것 그대로의 에러를 잡습니다.
-            console.error('Google API Raw Error:', sdkError);
-
-            const diagInfo = `\n\n[진단 정보]\n- 입력된 키: ${maskedKey} (길이: ${keyLength})\n- 에러 내용: ${sdkError.message}`;
+        if (response.ok) {
+            if (data.candidates && data.candidates.length > 0) {
+                const text = data.candidates[0].content.parts[0].text;
+                return res.status(200).json({ result: text });
+            } else {
+                throw new Error("AI가 응답을 생성하지 못했습니다.");
+            }
+        } else {
+            // 구글 서버의 에러 메시지를 상세히 출력합니다.
+            const errorMsg = data.error ? data.error.message : "알 수 없는 API 에러";
+            const diagInfo = `\n\n[진단 정보]\n- 시도한 키: ${maskedKey}\n- 응답 코드: ${response.status}\n- 에러 내용: ${errorMsg}`;
 
             return res.status(500).json({
-                error: `구글 서버 응답 오류입니다.${diagInfo}\n\n위 정보를 캡처해서 알려주시면 바로 해결 가능합니다!`
+                error: `구글 AI 서버 오류입니다.${diagInfo}`
             });
         }
     } catch (error) {
-        res.status(500).json({ error: "시스템 초기화 오류: " + error.message });
+        return res.status(500).json({ error: "시스템 오류: " + error.message });
     }
 }
