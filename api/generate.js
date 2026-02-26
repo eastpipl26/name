@@ -19,38 +19,33 @@ export default async function handler(req, res) {
     }
 
     try {
+        const maskedKey = apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "없음";
+        const keyLength = apiKey ? apiKey.length : 0;
+
+        console.log(`Diagnostic: Key Length=${keyLength}, Masked=${maskedKey}`);
+
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 시도할 모든 모델 후보군입니다.
-        const modelsToTry = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
-        let lastError = null;
+        // 가장 호환성이 높은 모델 하나를 우선 타겟팅하여 진단합니다.
+        const modelName = "gemini-1.5-flash";
+        const model = genAI.getGenerativeModel({ model: modelName });
 
-        for (const modelName of modelsToTry) {
-            try {
-                console.log(`Trying model: ${modelName}`);
-                const model = genAI.getGenerativeModel({ model: modelName });
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                const text = response.text();
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            return res.status(200).json({ result: text, model: modelName });
+        } catch (sdkError) {
+            // 구글 서버의 날것 그대로의 에러를 잡습니다.
+            console.error('Google API Raw Error:', sdkError);
 
-                // 성공하면 즉시 반환
-                return res.status(200).json({ result: text, model: modelName });
-            } catch (err) {
-                console.error(`${modelName} failed:`, err.message);
-                lastError = err;
-                continue;
-            }
+            const diagInfo = `\n\n[진단 정보]\n- 입력된 키: ${maskedKey} (길이: ${keyLength})\n- 에러 내용: ${sdkError.message}`;
+
+            return res.status(500).json({
+                error: `구글 서버 응답 오류입니다.${diagInfo}\n\n위 정보를 캡처해서 알려주시면 바로 해결 가능합니다!`
+            });
         }
-
-        throw lastError;
-
     } catch (error) {
-        console.error('Final Gemini SDK Error:', error);
-        let errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
-
-        if (errorMessage.includes("404") || errorMessage.includes("not found")) {
-            errorMessage = "구글 서버에서 모델을 찾을 수 없습니다. (404)\n반드시 'Google AI Studio'에서 새로 발급받은 키를 Vercel에 넣고, [Create Deployment]를 눌러주세요.";
-        }
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: "시스템 초기화 오류: " + error.message });
     }
 }
