@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(url, {
