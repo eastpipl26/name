@@ -19,7 +19,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    // 가장 범용적인 모델과 호환성이 높은 v1beta 버전을 결합하여 테스트합니다.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(url, {
@@ -33,13 +34,18 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (data.error) {
-            return res.status(500).json({ error: data.error.message });
+            console.error('Gemini API Error:', data.error);
+            return res.status(500).json({ error: `${data.error.message} (${data.error.status})` });
+        }
+
+        if (!data.candidates || data.candidates.length === 0) {
+            return res.status(500).json({ error: "AI가 결과를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요." });
         }
 
         const aiText = data.candidates[0].content.parts[0].text;
         res.status(200).json({ result: aiText });
     } catch (error) {
         console.error('API 호출 오류:', error);
-        res.status(500).json({ error: "AI 응답 생성 중 오류가 발생했습니다." });
+        res.status(500).json({ error: "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." });
     }
 }
