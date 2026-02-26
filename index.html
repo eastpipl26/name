@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아기별 작명소 - 소중한 첫 선물</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Myeongjo:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-shape shape1"></div>
+    <div class="background-shape shape2"></div>
+
+    <div class="app-container">
+        <header>
+            <div class="settings-trigger" onclick="toggleSettings()">⚙️ 설정</div>
+            <h1>아기별 작명소 ✨</h1>
+            <p>우리 아이를 위한 세상에 단 하나뿐인 이름</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="trend">🌟 대세이름</button>
+            <button class="tab-btn" data-tab="nickname">🌱 몽글태명</button>
+            <button class="tab-btn" data-tab="family">👨‍👩‍👧 가족조합</button>
+            <button class="tab-btn" data-tab="saju">🔮 사주작명 <span class="badge">Pro</span></button>
+            <button class="tab-btn" data-tab="global">✈️ 글로벌</button>
+        </nav>
+
+        <main class="content-area">
+            <!-- 탭 1: 대세 이름 -->
+            <section id="trend" class="tab-content active">
+                <div class="glass-card">
+                    <h2>올해 가장 사랑받는 이름 순위</h2>
+                    <p class="desc">대법원 통계 기반 최신 이름 트렌드를 확인하세요.</p>
+                    <div class="input-group">
+                        <label>성별 선택</label>
+                        <div class="radio-group">
+                            <input type="radio" id="trend-boy" name="trend-gender" value="boy" checked>
+                            <label for="trend-boy">남자아이</label>
+
+                            <input type="radio" id="trend-girl" name="trend-gender" value="girl">
+                            <label for="trend-girl">여자아이</label>
+
+                            <input type="radio" id="trend-neutral" name="trend-gender" value="neutral">
+                            <label for="trend-neutral">중성적인 이름</label>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="generateResult('trend')">순위 확인하기</button>
+                </div>
+                <!-- 결과 영역 -->
+                <div id="trend-result" class="result-box hidden"></div>
+            </section>
+
+            <!-- 탭 2: 몽글 태명 -->
+            <section id="nickname" class="tab-content">
+                <div class="glass-card">
+                    <h2>우리 아기 첫 애칭, 태명 짓기</h2>
+                    <p class="desc">엄마 아빠의 마음을 담아 부르기 예쁜 태명을 지어드려요.</p>
+                    <div class="input-group">
+                        <label>원하는 분위기 (다중 선택)</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="pure"> 순우리말</label>
+                            <label><input type="checkbox" value="nature"> 자연/계절</label>
+                            <label><input type="checkbox" value="cute"> 귀여운/된소리</label>
+                            <label><input type="checkbox" value="meaning"> 뜻이 깊은</label>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>부모님이 좋아하는 단어 (선택)</label>
+                        <input type="text" id="nickname-keyword" placeholder="예: 바다, 봄, 사랑">
+                    </div>
+                    <div class="input-group">
+                        <label>아기와 관련된 소중한 추억 (장소, 시간, 느낌 등)</label>
+                        <input type="text" id="nickname-memory" placeholder="예: 첫눈 오는 날 산책길, 따뜻했던 봄기운">
+                    </div>
+                    <button class="action-btn" onclick="generateResult('nickname')">태명 추천받기</button>
+                </div>
+                <div id="nickname-result" class="result-box hidden"></div>
+            </section>
+
+            <!-- 탭 3: 가족 조합 -->
+            <section id="family" class="tab-content">
+                <div class="glass-card">
+                    <h2>가족의 연결고리, 이름 조합기</h2>
+                    <p class="desc">돌림자나 엄마아빠 이름의 글자를 활용해보세요.</p>
+                    <div class="input-group" style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label>아빠 이름 (한글)</label>
+                            <input type="text" id="dad-name-kr" placeholder="예: 김철수">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>아빠 이름 (한자)</label>
+                            <input type="text" id="dad-name-hanja" placeholder="예: 金哲洙">
+                        </div>
+                    </div>
+                    <div class="input-group" style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label>엄마 이름 (한글)</label>
+                            <input type="text" id="mom-name-kr" placeholder="예: 이영희">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>엄마 이름 (한자)</label>
+                            <input type="text" id="mom-name-hanja" placeholder="예: 李英姬">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>돌림자 (선택)</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 0.8rem;">
+                            <div style="flex: 1;">
+                                <input type="text" id="dolimja-kr" placeholder="한글 (예: 재)">
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="text" id="dolimja-hanja" placeholder="한자 (예: 載)">
+                            </div>
+                        </div>
+                        <div class="radio-group" style="font-size: 0.85rem;">
+                            <input type="radio" id="dolimja-front" name="dolimja-pos" value="front">
+                            <label for="dolimja-front">이름 앞</label>
+
+                            <input type="radio" id="dolimja-back" name="dolimja-pos" value="back">
+                            <label for="dolimja-back">이름 뒤</label>
+
+                            <input type="radio" id="dolimja-any" name="dolimja-pos" value="any" checked>
+                            <label for="dolimja-any">상관없음</label>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="generateResult('family')">조합 이름 보기 보기</button>
+                </div>
+                <div id="family-result" class="result-box hidden"></div>
+            </section>
+
+            <!-- 탭 4: 사주 작명 -->
+            <section id="saju" class="tab-content">
+                <div class="glass-card premium-card">
+                    <div class="premium-header">
+                        <h2>프리미엄 사주/오행 작명</h2>
+                        <span class="pro-badge">전문가용</span>
+                    </div>
+                    <p class="desc">부족한 기운을 채워주는 맞춤 한자어 이름을 분석합니다. (샘플 제공)</p>
+                    <div class="input-group">
+                        <label>아기 성씨</label>
+                        <input type="text" id="saju-last-name" placeholder="예: 김">
+                    </div>
+                    <div class="input-group">
+                        <label>출생 (예정)일시</label>
+                        <input type="datetime-local" id="saju-datetime">
+                    </div>
+                    <!-- 프리미엄 사주용 부모 정보 추가 -->
+                    <div class="input-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>아빠 생일기운(선택)</label>
+                            <input type="datetime-local" id="saju-dad-datetime">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>엄마 생일기운(선택)</label>
+                            <input type="datetime-local" id="saju-mom-datetime">
+                        </div>
+                    </div>
+                    <button class="action-btn premium-btn" onclick="generateResult('saju')">사주 분석 작명 시작 (무료 1회)</button>
+                </div>
+                <div id="saju-result" class="result-box hidden"></div>
+            </section>
+
+            <!-- 탭 5: 글로벌 -->
+            <section id="global" class="tab-content">
+                <div class="glass-card">
+                    <h2>글로벌 시대, 영어 이름 짓기</h2>
+                    <p class="desc">한국어 발음과 비슷하거나 뜻이 통하는 세련된 영어 이름</p>
+                    <div class="input-group">
+                        <label>한국 이름 (선택)</label>
+                        <input type="text" id="korean-name" placeholder="예: 지아">
+                    </div>
+                    <div class="input-group">
+                        <label>원하는 이미지</label>
+                        <select id="global-vibe">
+                            <option value="classic">클래식하고 기품있는</option>
+                            <option value="modern">현대적이고 세련된</option>
+                            <option value="nature">자연을 닮은 부드러운</option>
+                            <option value="strong">똑똑하고 강인한</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="generateResult('global')">영어 이름 찾기</button>
+                </div>
+                <div id="global-result" class="result-box hidden"></div>
+            </section>
+        </main>
+
+        <!-- 설정 모달 -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content glass-card">
+                <h3>서비스 설정</h3>
+                <p class="desc">AI 기능을 사용하려면 Gemini API 키가 필요합니다.</p>
+                <div class="input-group">
+                    <label>Gemini API Key</label>
+                    <input type="password" id="api-key" placeholder="AI 키를 입력하세요">
+                    <p style="font-size: 0.75rem; color: #999; margin-top: 0.5rem;">* 키는 브라우저에만 저장되며 외부로 유출되지 않습니다.</p>
+                </div>
+                <button class="action-btn" onclick="saveSettings()">저장 및 닫기</button>
+            </div>
+        </div>
+
+        <!-- 로딩 오버레이 -->
+        <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p id="loading-text">운명적인 이름을 찾고 있어요...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
