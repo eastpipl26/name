@@ -1,12 +1,11 @@
-// api/generate.js - Vercel Serverless Function
-// 이 코드는 서버에서 실행되므로 API Key가 사용자 브라우저에 노출되지 않습니다.
+// api/generate.js - Vercel Serverless Function (SDK Version)
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-    // 1. 보안 설정: API 키는 환경 변수에서 가져옵니다. (공백 제거 처리 추가)
     const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
     if (!apiKey) {
-        return res.status(500).json({ error: "서버에 API Key가 설정되지 않았습니다. Vercel 설정을 확인해주세요." });
+        return res.status(500).json({ error: "서버에 API Key가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요." });
     }
 
     if (req.method !== 'POST') {
@@ -19,33 +18,29 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
     }
 
-    // 가장 안정적인 표준 v1 엔드포인트와 기본 모델(flash)을 사용합니다.
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
     try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
+        // 구글 공식 SDK를 사용하여 모델을 호출합니다. (URL을 직접 적지 않아도 되어 안전합니다.)
+        const genAI = new GoogleGenerativeAI(apiKey);
 
-        const data = await response.json();
+        // 사용자가 Pro를 사용한다고 하였으므로 gemini-1.5-pro 모델을 우선 시도합니다.
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-        if (data.error) {
-            console.error('Gemini API Error:', data.error);
-            return res.status(500).json({ error: `${data.error.message} (${data.error.status})` });
-        }
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
 
-        if (!data.candidates || data.candidates.length === 0) {
-            return res.status(500).json({ error: "AI가 결과를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요." });
-        }
-
-        const aiText = data.candidates[0].content.parts[0].text;
-        res.status(200).json({ result: aiText });
+        res.status(200).json({ result: text });
     } catch (error) {
-        console.error('API 호출 오류:', error);
-        res.status(500).json({ error: "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." });
+        console.error('Gemini SDK Error:', error);
+
+        // 에러 메시지 분석
+        let errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
+
+        // 만약 Pro 모델이 권한 문제로 안 될 경우를 대비해 안내 추가
+        if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+            errorMessage = "API에서 모델을 찾을 수 없습니다. API Key가 Google AI Studio용인지 확인해 주세요.";
+        }
+
+        res.status(500).json({ error: errorMessage });
     }
 }
