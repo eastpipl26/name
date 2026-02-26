@@ -2,11 +2,11 @@
 // 이 코드는 서버에서 실행되므로 API Key가 사용자 브라우저에 노출되지 않습니다.
 
 export default async function handler(req, res) {
-    // 1. 보안 설정: API 키는 환경 변수에서 가져옵니다.
-    const apiKey = process.env.GEMINI_API_KEY;
+    // 1. 보안 설정: API 키는 환경 변수에서 가져옵니다. (공백 제거 처리 추가)
+    const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
     if (!apiKey) {
-        return res.status(500).json({ error: "서버에 API Key가 설정되지 않았습니다." });
+        return res.status(500).json({ error: "서버에 API Key가 설정되지 않았습니다. Vercel 설정을 확인해주세요." });
     }
 
     if (req.method !== 'POST') {
@@ -19,8 +19,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
     }
 
-    // 가장 범용적인 모델과 호환성이 높은 v1beta 버전을 결합하여 테스트합니다.
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    // 가장 안정적인 표준 v1 엔드포인트와 기본 모델(flash)을 사용합니다.
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(url, {
