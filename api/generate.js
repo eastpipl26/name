@@ -19,26 +19,39 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 구글 공식 SDK를 사용하여 모델을 호출합니다. (URL을 직접 적지 않아도 되어 안전합니다.)
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        // 사용자가 Pro를 사용한다고 하였으므로 gemini-1.5-pro 모델을 우선 시도합니다.
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        // 1. 먼저 Pro 모델로 시도해 봅니다.
+        let modelName = "gemini-1.5-pro";
+        let model = genAI.getGenerativeModel({ model: modelName });
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        let result;
+        try {
+            result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            return res.status(200).json({ result: text, model: modelName });
+        } catch (proError) {
+            console.error('Pro Model failed, trying Flash:', proError.message);
 
-        res.status(200).json({ result: text });
+            // 2. Pro 실패 시 가장 호환성이 높은 Flash 모델로 자동 전환(Fallback) 합니다.
+            modelName = "gemini-1.5-flash";
+            model = genAI.getGenerativeModel({ model: modelName });
+            result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            return res.status(200).json({ result: text, model: modelName });
+        }
     } catch (error) {
         console.error('Gemini SDK Error:', error);
 
-        // 에러 메시지 분석
         let errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
 
-        // 만약 Pro 모델이 권한 문제로 안 될 경우를 대비해 안내 추가
+        // 상세 에러 안내
         if (errorMessage.includes("404") || errorMessage.includes("not found")) {
-            errorMessage = "API에서 모델을 찾을 수 없습니다. API Key가 Google AI Studio용인지 확인해 주세요.";
+            errorMessage = "모델을 찾을 수 없습니다. (에러 404)\n1. API Key가 'Google AI Studio'에서 발급된 것인지 확인해 주세요.\n2. Vercel 설정에서 API Key 앞뒤에 공백이 없는지 확인해 주세요.";
+        } else if (errorMessage.includes("403") || errorMessage.includes("permission")) {
+            errorMessage = "접근 권한이 없습니다. (에러 403)\nAPI Key가 활성화된 상태인지 확인해 주세요.";
         }
 
         res.status(500).json({ error: errorMessage });
