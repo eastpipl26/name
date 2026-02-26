@@ -1,9 +1,19 @@
-// api/generate.js - Vercel Serverless Function (REST v1 Version)
+// api/generate.js - Vercel Serverless Function (REST v1 정밀 진단 버전)
+
 export default async function handler(req, res) {
-    const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+    // 1. 보안: 환경 변수에서 API Key 가져오기 (공백 완벽 제거)
+    const rawKey = process.env.GEMINI_API_KEY || "";
+    const apiKey = rawKey.trim();
+
+    // 진단용 마스킹 정보 생성
+    const maskedKey = apiKey.length > 8
+        ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+        : "키가 너무 짧거나 없음";
 
     if (!apiKey) {
-        return res.status(500).json({ error: "서버에 API Key가 설정되지 않았습니다. Vercel 환경 변수를 확인해주세요." });
+        return res.status(500).json({
+            error: `API Key가 설정되지 않았습니다.\nVercel 환경변수에서 GEMINI_API_KEY를 확인해 주세요.`
+        });
     }
 
     if (req.method !== 'POST') {
@@ -12,12 +22,10 @@ export default async function handler(req, res) {
 
     const { prompt } = req.body;
     if (!prompt) {
-        return res.status(400).json({ error: "프롬프트가 누락되었습니다." });
+        return res.status(400).json({ error: "요청 내용이 없습니다." });
     }
 
-    const maskedKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-
-    // 가장 표준적인 v1 엔드포인트를 사용합니다. (SDK의 v1beta 오류를 피하기 위함)
+    // [중요] 가장 안정적인 REST v1 엔드포인트를 사용합니다. (v1beta의 404 이슈 회피)
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     try {
@@ -39,15 +47,15 @@ export default async function handler(req, res) {
                 throw new Error("AI가 응답을 생성하지 못했습니다.");
             }
         } else {
-            // 구글 서버의 에러 메시지를 상세히 출력합니다.
+            // 상세 진단 에러 반환
             const errorMsg = data.error ? data.error.message : "알 수 없는 API 에러";
-            const diagInfo = `\n\n[진단 정보]\n- 시도한 키: ${maskedKey}\n- 응답 코드: ${response.status}\n- 에러 내용: ${errorMsg}`;
+            const diagInfo = `\n\n[🔧 정밀 진단 정보]\n- 시도한 키: ${maskedKey}\n- 키 글자 수: ${apiKey.length}\n- 응답 코드: ${response.status}\n- 상세 원인: ${errorMsg}`;
 
             return res.status(500).json({
-                error: `구글 AI 서버 오류입니다.${diagInfo}`
+                error: `구글 AI 연동 오류입니다.${diagInfo}\n\n※ 키가 AIza로 시작하는지, Vercel에서 Redeploy를 했는지 확인해 주세요.`
             });
         }
     } catch (error) {
-        return res.status(500).json({ error: "시스템 오류: " + error.message });
+        return res.status(500).json({ error: "서버 내부 오류: " + error.message });
     }
 }
